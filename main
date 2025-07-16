@@ -1,0 +1,100 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score 
+from sklearn.metrics import confusion_matrix, classification_report
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.layers import Input
+
+# Load the dataset
+df = pd.read_csv("heart.csv")
+
+# Check for missing data
+print(df.isnull().sum())
+# there are no missing values, no need to encode categorical variables as they are already numerical  
+
+# Split the dataset into features and target variable
+X = df.drop('target', axis=1)
+y = df['target']
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)  #learns the mean and std and applies scaling
+X_test_scaled = scaler.transform(X_test)        #applies the previously learned scaling — ensuring no data leakage from the test set
+
+# Train the Logistic Regression model
+model = LogisticRegression()
+model.fit(X_train_scaled, y_train)
+
+# Evaluate the model
+y_pred = model.predict(X_test_scaled)
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy: {:.2f}%".format(accuracy * 100))
+
+print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+
+# Train Random Forest model
+rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_model.fit(X_train, y_train)
+
+# Predict on test set
+y_pred = rf_model.predict(X_test)
+
+# Accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Random Forest Accuracy: {:.2f}%".format(accuracy * 100))
+
+# Confusion Matrix
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+# Classification Report
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+
+
+gbc = GradientBoostingClassifier(n_estimators=300,
+                                 learning_rate=0.1,
+                                 random_state=52,
+                                 max_features='sqrt',
+                                  max_depth=3) 
+
+                                 
+gbc.fit(X_train, y_train)
+
+pred_y = gbc.predict(X_test)
+
+acc = accuracy_score(y_test, pred_y)
+print("Gradient Boosting Classifier accuracy is : {:.2f}".format(acc))
+
+
+classifier = Sequential()
+
+classifier = Sequential()
+classifier.add(Input(shape=(13,)))
+classifier.add(Dense(units=12, kernel_initializer='uniform', activation='relu'))
+classifier.add(Dense(units=6, kernel_initializer='uniform', activation='relu'))
+classifier.add(Dense(units=1, kernel_initializer='uniform', activation='sigmoid'))
+
+classifier.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+classifier.fit(X_train_scaled, y_train, batch_size=10, epochs=100, verbose=0)
+
+# Evaluate ANN
+loss, ann_accuracy = classifier.evaluate(X_test_scaled, y_test, verbose=0)
+print("ANN Test Accuracy: {:.2f}%".format(ann_accuracy * 100))
+
+# Predict and evaluate ANN
+y_pred_ann = classifier.predict(X_test_scaled)
+y_pred_ann = (y_pred_ann > 0.5)
+
+print("Confusion Matrix (ANN):\n", confusion_matrix(y_test, y_pred_ann))
+print("Classification Report (ANN):\n", classification_report(y_test, y_pred_ann))
