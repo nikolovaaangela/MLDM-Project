@@ -11,6 +11,10 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Input
 from sklearn.metrics import precision_score, recall_score, f1_score
+import joblib
+import pickle
+from keras.models import load_model
+
 
 # Function to evaluate the model and print metrics
 def evaluate_model(name, y_true, y_pred, results_dict):
@@ -106,7 +110,33 @@ y_pred_ann = (y_pred_ann > 0.5)
 
 evaluate_model("Neural Network", y_test, y_pred_ann, results)
 
-
+# Convert results to DataFrame  
 results_df = pd.DataFrame(results).T
 print("\nModel Performance Comparison:\n")
 print(results_df.sort_values(by="F1-score", ascending=False))
+
+import os
+
+# Determine the best model
+best_model_name = results_df["F1-score"].idxmax()
+print(f"\n Best Model Based on F1-Score: {best_model_name}")
+
+# Save the best model
+model_dir = "saved_models"
+os.makedirs(model_dir, exist_ok=True)
+
+if best_model_name == "Logistic Regression":
+    joblib.dump(model, f"{model_dir}/best_model.pkl")
+    best_model_loaded = joblib.load(f"{model_dir}/best_model.pkl")
+
+elif best_model_name == "Random Forest":
+    joblib.dump(rf_model, f"{model_dir}/best_model.pkl")
+    best_model_loaded = joblib.load(f"{model_dir}/best_model.pkl")
+
+elif best_model_name == "Gradient Boosting Classifier":
+    joblib.dump(gbc, f"{model_dir}/best_model.pkl")
+    best_model_loaded = joblib.load(f"{model_dir}/best_model.pkl")
+
+elif best_model_name == "Neural Network":
+    classifier.save(f"{model_dir}/best_model.h5")
+    best_model_loaded = load_model(f"{model_dir}/best_model.h5")
