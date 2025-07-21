@@ -4,7 +4,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score 
 from sklearn.metrics import confusion_matrix, classification_report
 from keras.models import Sequential
@@ -12,8 +11,9 @@ from keras.layers import Dense
 from keras.layers import Input
 from sklearn.metrics import precision_score, recall_score, f1_score
 import joblib
-import pickle
 from keras.models import load_model
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 # Function to evaluate the model and print metrics
@@ -53,8 +53,13 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)  #learns the mean and std and applies scaling
-X_test_scaled = scaler.transform(X_test)        #applies the previously learned scaling — ensuring no data leakage from the test set
+#learns the mean and std and applies scaling
+X_train_scaled = scaler.fit_transform(X_train)  
+#applies the previously learned scaling to ensure that no data leaks from the test set
+X_test_scaled = scaler.transform(X_test)     
+# Save the scaler for later use
+joblib.dump(scaler, "saved_models/scaler.pkl")
+
 
 # Train the Logistic Regression model
 results = {}
@@ -65,6 +70,19 @@ model.fit(X_train_scaled, y_train)
 y_pred = model.predict(X_test_scaled)
 evaluate_model("Logistic Regression", y_test, y_pred, results)
 
+# Feature importance for Logistic Regression
+coefficients = model.coef_[0]
+feature_importance_lr = pd.Series(np.abs(coefficients), index=X.columns)
+feature_importance_lr = feature_importance_lr.sort_values(ascending=False)
+
+print("Logistic Regression Feature Influence (Absolute Coefficients):\n")
+print(feature_importance_lr)
+
+# Plot feature importances
+plt.figure(figsize=(10, 6))
+feature_importance_lr.plot(kind='bar', title='Feature Influence (Logistic Regression)')
+plt.tight_layout()
+plt.show()
 
 # Train Random Forest model
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -85,6 +103,19 @@ gbc = GradientBoostingClassifier(n_estimators=300,
 gbc.fit(X_train, y_train)
 
 pred_y = gbc.predict(X_test)
+
+# Feature importance for Gradient Boosting Classifier
+importances = gbc.feature_importances_
+feature_names = X.columns
+indices = np.argsort(importances)[::-1]  
+
+# Plot feature importances
+plt.figure(figsize=(10, 6))
+plt.title("Feature Importance (Gradient Boosting)")
+plt.bar(range(X.shape[1]), importances[indices], align="center")
+plt.xticks(range(X.shape[1]), [feature_names[i] for i in indices], rotation=45)
+plt.tight_layout()
+plt.show()
 
 evaluate_model("Gradient Boosting Classifier", y_test, pred_y, results)
 
@@ -140,3 +171,4 @@ elif best_model_name == "Gradient Boosting Classifier":
 elif best_model_name == "Neural Network":
     classifier.save(f"{model_dir}/best_model.h5")
     best_model_loaded = load_model(f"{model_dir}/best_model.h5")
+
