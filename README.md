@@ -23,7 +23,7 @@ The project includes:
 - Logistic Regression
 - Random Forest Classifier
 - Gradient Boosting Classifier
-- Artificial Neural Network (Keras/TensorFlow)
+- Artificial Neural Network 
 
 Each model is evaluated using:
 - Accuracy
