@@ -1,4 +1,4 @@
-# Heart Attack Risk Prediction (ML & Data Mining Project)
+# Heart Attack Risk Prediction (Machine Learning & Data Mining Project)
 
 This project applies various machine learning models to predict the risk of heart attack based on clinical patient data. It was developed as part of the Machine Learning and Data Mining course by Angela Nikolova.
 
