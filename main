@@ -14,6 +14,8 @@ import joblib
 from keras.models import load_model
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+import graphviz
 
 
 # Function to evaluate the model and print metrics
@@ -84,6 +86,27 @@ feature_importance_lr.plot(kind='bar', title='Feature Influence (Logistic Regres
 plt.tight_layout()
 plt.show()
 
+# Confusion Matrix for Logistic Regression
+from sklearn.metrics import roc_curve, roc_auc_score
+import seaborn as sns
+
+cm_lr = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(6, 4))
+sns.heatmap(cm_lr, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['No Attack', 'Attack'],
+            yticklabels=['No Attack', 'Attack'])
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Confusion Matrix (Logistic Regression)")
+plt.tight_layout()
+plt.show()
+
+# ROC for Logistic Regression
+y_proba_lr = model.predict_proba(X_test_scaled)[:, 1]
+fpr_lr, tpr_lr, _ = roc_curve(y_test, y_proba_lr)
+roc_auc_lr = roc_auc_score(y_test, y_proba_lr)
+
+
 # Train Random Forest model
 rf_model = RandomForestClassifier(n_estimators=100, random_state=42)
 rf_model.fit(X_train, y_train)
@@ -93,6 +116,13 @@ y_pred = rf_model.predict(X_test)
 evaluate_model("Random Forest", y_test, y_pred, results)
 
 
+# ROC for Random Forest
+y_proba_rf = rf_model.predict_proba(X_test)[:, 1]
+fpr_rf, tpr_rf, _ = roc_curve(y_test, y_proba_rf)
+roc_auc_rf = roc_auc_score(y_test, y_proba_rf)
+
+
+# Train Gradient Boosting Classifier
 gbc = GradientBoostingClassifier(n_estimators=300,
                                  learning_rate=0.1,
                                  random_state=52,
@@ -119,7 +149,13 @@ plt.show()
 
 evaluate_model("Gradient Boosting Classifier", y_test, pred_y, results)
 
+# ROC for Gradient Boosting
+y_proba_gbc = gbc.predict_proba(X_test)[:, 1]
+fpr_gbc, tpr_gbc, _ = roc_curve(y_test, y_proba_gbc)
+roc_auc_gbc = roc_auc_score(y_test, y_proba_gbc)
 
+
+# Train Neural Network
 classifier = Sequential()
 
 classifier = Sequential()
@@ -141,10 +177,52 @@ y_pred_ann = (y_pred_ann > 0.5)
 
 evaluate_model("Neural Network", y_test, y_pred_ann, results)
 
+# ROC for Neural Network
+y_proba_ann = classifier.predict(X_test_scaled).ravel()
+fpr_ann, tpr_ann, _ = roc_curve(y_test, y_proba_ann)
+roc_auc_ann = roc_auc_score(y_test, y_proba_ann)
+
+
 # Convert results to DataFrame  
 results_df = pd.DataFrame(results).T
 print("\nModel Performance Comparison:\n")
 print(results_df.sort_values(by="F1-score", ascending=False))
+
+# Plot ROC Curves for all models
+plt.figure(figsize=(8, 6))
+plt.plot(fpr_lr, tpr_lr, label=f"Logistic Regression")
+plt.plot(fpr_rf, tpr_rf, label=f"Random Forest")
+plt.plot(fpr_gbc, tpr_gbc, label=f"Gradient Boosting")
+plt.plot(fpr_ann, tpr_ann, label=f"Neural Network")
+plt.plot([0, 1], [0, 1], 'k--', label="Random Guessing")
+plt.xlabel("False Positive Rate")
+plt.ylabel("True Positive Rate")
+plt.title("ROC Curves for all models")
+plt.legend(loc="lower right")
+plt.tight_layout()
+plt.show()
+
+# Train a decision tree model (just for visualization)
+tree_model = DecisionTreeClassifier(max_depth=4, random_state=42)
+tree_model.fit(X_train, y_train)
+
+# Export the tree structure to DOT format
+dot_data = export_graphviz(
+    tree_model,
+    out_file=None,
+    feature_names=X.columns,
+    class_names=['No Attack', 'Attack'],
+    filled=True,
+    rounded=True,
+    special_characters=True
+)
+
+# Graph from DOT data
+graph = graphviz.Source(dot_data)
+graph.render("decision_tree", format="png", cleanup=True)  # Saves as decision_tree.png
+
+
+
 
 import os
 
@@ -171,4 +249,6 @@ elif best_model_name == "Gradient Boosting Classifier":
 elif best_model_name == "Neural Network":
     classifier.save(f"{model_dir}/best_model.h5")
     best_model_loaded = load_model(f"{model_dir}/best_model.h5")
+
+
 
